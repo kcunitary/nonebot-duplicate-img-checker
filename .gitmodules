@@ -1,0 +1,3 @@
+[submodule "fastimage"]
+	path = fastimage
+	url = git@github.com:kcunitary/fastimage.git
