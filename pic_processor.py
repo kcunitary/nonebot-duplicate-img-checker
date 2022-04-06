@@ -5,7 +5,7 @@ from asyncio import gather
 from functools import partial
 from .util import fromTimeStamp, mk2Str
 
-import aiohttp
+import httpx
 from io import BytesIO
 from PIL import Image
 import imagehash
@@ -15,7 +15,7 @@ import time
 import sys
 
 
-from fastimage.fastimage import detect
+from .fastimage.fastimage import detect
 
 
 conf = gloabal_conf

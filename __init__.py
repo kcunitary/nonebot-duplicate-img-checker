@@ -1,12 +1,12 @@
 from .models import group_message_sender, message_type_text, message_type_pic, group_message_meta
 from nonebot.plugin import require
 from nonebot import on_message, on_command
-from nonebot.adapters.cqhttp import GroupMessageEvent
+#from nonebot.adapters.cqhttp import GroupMessageEvent
 from nonebot.log import logger
 from asyncio import gather
 from .text_processor import processText
 from .pic_processor import pics_process
-
+from nonebot.adapters import Event
 
 # init db
 export = require("nonebot_plugin_navicat")
@@ -58,7 +58,7 @@ any_msg = on_message(priority=99, block=False
 
 
 @any_msg.handle()
-async def handle(bot, event: GroupMessageEvent, state):
+async def handle( event:Event):
     # insert main
     main_meata_query = main_meata(event)
     logger.debug(
