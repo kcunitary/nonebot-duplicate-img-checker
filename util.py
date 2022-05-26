@@ -4,7 +4,7 @@ from .config import gloabal_conf
 conf = gloabal_conf
 
 def fromTimeStamp():
-    confdays = conf["searchRange"]["days"]
+    confdays = conf["timeRange"]
     daysdelta = timedelta(days=confdays)
     fromday = datetime.today() - daysdelta
     fromTimeStamp = int(fromday.timestamp())

@@ -6,9 +6,23 @@ from .util import mk2Str, fromTimeStamp
 from .models import message_type_text
 from nonebot.log import logger
 import time
-#from sqlalchemy import sql as alsql
+
 from Levenshtein import ratio
 conf = gloabal_conf
+
+def conf_filter(the_record,last_record):
+    if not conf["calloutSelf"]:
+        if last_record.user_id == the_record["user_id"]:
+            return False
+    if conf["cooldown"] > 0:
+        timeStr = mk2Str(last_record.time)
+        now = int(time.time())
+        diff = now - last_record.time
+        if (diff < conf["cooldown"]*60):
+            return False
+    if the_record["count"] > conf["maxCallout"]:
+        return False
+    return True
 
 
 def callout_msg(count, nickname_reply, nickname_last, ltime):
@@ -19,13 +33,12 @@ def callout_msg(count, nickname_reply, nickname_last, ltime):
     diff = now - ltime
     if diff < conf["cooldown"]*60:
         return None
-    msg = f"火星消息警察,对{nickname_reply} 出警! 这条消息由{nickname_last} 在{timeStr} 发过了!"
-    if count > 0:
-        msg = msg + f"这条消息已经发了{count}次!"
+    msg = f"火星消息警察,对{nickname_reply} 出警! 这条消息由{nickname_last} 在{timeStr} 发过了!\r\n"
+    msg = msg + f"这条消息已经发了{count} 次!"
     return msg
 
 
-def text_data(event):
+def msg_text_insert_pre(event):
     query = message_type_text.insert()
     text = event.message.extract_plain_text()
     msg = event.get_message()
@@ -46,33 +59,35 @@ def text_data(event):
         "group_id": event.group_id,
         "message_id": event.message_id
     }
-
-    return {
-        "query": query,
-        "values": values
-    }
+    return values
 
 
-async def similarTextSearch(db, gid, text):
-    # generate sql
+async def full_text_search(db, gid, text):
     lenConf = conf["minTextLength"]
-    if len(text) < lenConf:
+    text_len = len(text)
+    if text_len < lenConf:
         return None
+    top_len = int(text_len * 1.1)
 
-    fullSql = f"""SELECT
+    bottom_len = max(int(text_len * 0.9),lenConf)
+    time_range = fromTimeStamp()
+    fullSql = """SELECT
 	*,
 	MATCH ( `plain_text` ) AGAINST ( ":text" ) AS MATCHVALUE 
 FROM
 	message_type_text 
 	
-	where group_id = :g_id and text_length > {lenConf}
+	where group_id = :g_id 
+    and text_length BETWEEN  :b_len and :t_len
+    and time > :time_range
 HAVING
 	MATCHVALUE > 80
-	ORDER BY MATCHVALUE  desc,id desc"""
+	ORDER BY MATCHVALUE  desc,id desc
+LIMIT 1
+    """
 
-#    fullSql = query + lengthFilter + mathquery
+    values = {"g_id": gid, "text": text,"b_len": bottom_len, "t_len": top_len,"time_range": time_range}
 
-    values = {"g_id": gid, "text": text}
     r = await db.fetch_one(query=fullSql, values=values)
     logger.debug(f"text searcher db:{r}")
     if r:
@@ -82,26 +97,25 @@ HAVING
             return r
 
 
-async def processText(event,  matcher, db):
-    qv = text_data(event)
-
-    text_search_result = await similarTextSearch(db, event.group_id,  qv["values"]["plain_text"])
-
+async def text_process(event,  matcher, db):
     tasks = []
+    sql_vals = msg_text_insert_pre(event)
 
-    count = 0
-    if text_search_result:
+    full_text_search_r = await full_text_search(db, event.group_id,event.message.extract_plain_text())
+
+    if full_text_search_r:
         # update count
-        count = text_search_result.count + 1
-        qv["values"]["count"] = count
+        r_count  = full_text_search_r.count + 1
+        sql_vals["count"] = r_count
 
         # msg
-
-        msg = callout_msg(count, event.sender.nickname,
-                          text_search_result.user_displayname, text_search_result.time)
-        if msg:
+        msg = callout_msg(r_count, event.sender.nickname,
+                          full_text_search_r.user_displayname, 
+                          full_text_search_r.time)
+        if msg and conf_filter(sql_vals,full_text_search_r):
             tasks.append(matcher.send(msg))
-
-    tasks.append(db.execute(**qv))
+    tasks.append(db.execute(query=message_type_text.insert(),values=sql_vals))
     r = await gather(*tasks)
     return r
+
+

@@ -5,7 +5,7 @@ from asyncio import gather
 from functools import partial
 from .util import fromTimeStamp, mk2Str
 
-import httpx
+import aiohttp
 from io import BytesIO
 from PIL import Image
 import imagehash
@@ -38,15 +38,15 @@ async def getSizeFast(url):
 
 
 async def getImg_WH_Hash(url):
-    async with httpx.AsyncClient() as client:
-        r = await client.get(url)
-    full_image = Image.open(BytesIO(r.content))
-    width, height = full_image.size
-    full_hash = imagehash.dhash(full_image)
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as resp:
+            img = Image.open(BytesIO(await resp.read()))
+            width, height = img.size
+            img_hash = imagehash.dhash(img)
     return {
         "img_width": width,
         "img_height": height,
-        "img_hash": str(full_hash)
+        "img_hash": str(img_hash)
     }
 
 
@@ -240,9 +240,7 @@ async def pics_process(event, matcher, db):
     msgList = event.get_message()
     imgList = [x for x in msgList if (
         x.type == "image") and x.data.get("subType", -1) == "0"]
-#    logger.debug(imgList)
     pic_processor = [pic_info(msg, event, db) for msg in imgList]
-#    logger.debug()
     tasks = [p.process_full() for p in pic_processor]
 
     done = await gather(*tasks)
@@ -258,7 +256,7 @@ async def pics_process(event, matcher, db):
     bot_msg_after = ""
     for k, v in enumerate(pic_processor):
         if v.last and conf_filter(v):
-            bot_msg_after += f"第{k+1}张由{v.last.user_displayname}在{mk2Str(v.last.time)}发过了!这条消息已经发了{v.last.count+1}次!\r\n"
+            bot_msg_after += f"第{k+1} 张由{v.last.user_displayname} 在{mk2Str(v.last.time)} 发过了!\r\n这条消息已经发了{v.last.count+1} 次!\r\n"
     if bot_msg_after:
         final = bot_msg + bot_msg_after
         final = final.strip()

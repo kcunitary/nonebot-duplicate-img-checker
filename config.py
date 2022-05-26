@@ -15,8 +15,5 @@ gloabal_conf = {
     "cooldown": 3,
     "minWidth": 512,
     "minHeight": 512,
-    "searchRange": {
-        "count": 5000,
-        "days": 30
-    }
+    "timeRange": 30
 }
