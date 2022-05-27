@@ -1,16 +1,21 @@
 from .models import group_message_sender, message_type_text, message_type_pic, group_message_meta
 from nonebot.plugin import require
-from nonebot import on_message, on_command
-from nonebot.log import logger
+from nonebot import on_message
 from asyncio import gather
 from .text_processor import text_process
 from .pic_processor import pics_process
 from nonebot.adapters.onebot.v11 import GroupMessageEvent
+from nonebot.plugin import export
 # .event
 # init db
-export = require("nonebot_plugin_navicat")
-db = export.mysql_pool
+dbexport = require("nonebot_plugin_navicat")
+db = dbexport.mysql_pool
 
+export=export()
+export.group_message_sender = group_message_sender
+export.message_type_text = message_type_text
+export.message_type_pic = message_type_pic
+export.group_message_meta = group_message_meta
 
 async def msg_metadata_insert(db, event: GroupMessageEvent):
     query = group_message_meta.insert()
