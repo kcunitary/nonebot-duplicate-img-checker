@@ -54,6 +54,7 @@ message_type_text = sqlalchemy.Table(
     sqlalchemy.Column("plain_text", sqlalchemy.VARCHAR(length=5000)),
     sqlalchemy.Column("message", sqlalchemy.JSON),
     sqlalchemy.Column("text_length", sqlalchemy.Integer),
+
     sqlalchemy.Column("count", sqlalchemy.Integer),
 
     sqlalchemy.Column("time", sqlalchemy.Integer),
@@ -70,10 +71,11 @@ message_type_pic = sqlalchemy.Table(
     sqlalchemy.Column("id", sqlalchemy.BigInteger,
                       autoincrement=True, primary_key=True),
     sqlalchemy.Column("url", sqlalchemy.VARCHAR(length=5000)),
+
+
     sqlalchemy.Column("url_hash", sqlalchemy.VARCHAR(length=255),index=True),
     sqlalchemy.Column("img_width", sqlalchemy.Integer),
     sqlalchemy.Column("img_height", sqlalchemy.Integer),
-
     sqlalchemy.Column("img_hash", sqlalchemy.CHAR(length=16)),
     sqlalchemy.Column("ocr_text", sqlalchemy.VARCHAR(length=2083)),
     sqlalchemy.Column("ocr_len", sqlalchemy.Integer),

@@ -239,7 +239,7 @@ class pic_info():
 async def pics_process(event, matcher, db):
     msgList = event.get_message()
     imgList = [x for x in msgList if (
-        x.type == "image") and x.data.get("subType", -1) == "0"]
+        x.type == "image")]
     pic_processor = [pic_info(msg, event, db) for msg in imgList]
     tasks = [p.process_full() for p in pic_processor]
 
